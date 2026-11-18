@@ -1,0 +1,1007 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Parabola Castle</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Big+Shoulders+Stencil+Display:wght@700;800&family=STIX+Two+Text:ital,wght@0,400;0,600;1,400&family=Work+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: an architect's blueprint sheet — castle drawing on the left, the work order (equation + questions) on the right. Single dark look by design. */
+:root {
+  --paper: #0f3a68;
+  --paper-deep: #0a2b4f;
+  --grid: rgba(214, 233, 255, 0.07);
+  --grid-major: rgba(214, 233, 255, 0.13);
+  --ink: #eaf3ff;
+  --ink-dim: #a6c2e2;
+  --cyan: #8fd3ff;
+  --gold: #f2c14e;
+  --ok: #8ee6a8;
+  --miss: #ff9b8a;
+  --panel: rgba(8, 34, 64, 0.72);
+  --rule: rgba(214, 233, 255, 0.24);
+  --f-display: "Big Shoulders Stencil Display", "Big Shoulders Display", Impact, "Arial Narrow", sans-serif;
+  --f-hand: "Architects Daughter", "Comic Sans MS", "Segoe Print", cursive;
+  --f-body: "Work Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-math: "STIX Two Text", "Cambria Math", "Times New Roman", serif;
+  color-scheme: dark;
+}
+html, body { min-height: 100%; }
+body {
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(var(--grid-major) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-major) 1px, transparent 1px),
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 100px 100px, 100px 100px, 20px 20px, 20px 20px;
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: 15px;
+  line-height: 1.5;
+}
+.wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding-block: 20px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+header.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 24px;
+  border-bottom: 2px solid var(--rule);
+  padding-bottom: 12px;
+}
+h1 {
+  font-family: var(--f-display);
+  font-weight: 800;
+  font-size: clamp(2.2rem, 6vw, 3.6rem);
+  line-height: 0.9;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  margin: 0;
+  text-wrap: balance;
+}
+.tag {
+  font-family: var(--f-hand);
+  color: var(--ink-dim);
+  margin: 6px 0 0;
+  font-size: 1.05rem;
+}
+.pips { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.pips-label { font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-dim); margin-right: 4px; }
+.pip {
+  width: 22px; height: 16px;
+  border: 1.5px dashed var(--rule);
+  border-radius: 2px;
+}
+.pip.current { border: 1.5px solid var(--cyan); box-shadow: 0 0 0 3px rgba(143, 211, 255, 0.18); }
+.pip.gold { background: var(--gold); border: 1.5px solid var(--gold); }
+.pip.stone { background: var(--ink-dim); border: 1.5px solid var(--ink); }
+.pip.patched { background: repeating-linear-gradient(45deg, var(--ink-dim) 0 3px, transparent 3px 6px); border: 1.5px solid var(--ink-dim); }
+
+main.board {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 900px) { main.board { grid-template-columns: minmax(0, 1fr); } }
+
+.sheet {
+  border: 2px solid var(--ink);
+  outline: 1px solid var(--rule);
+  outline-offset: 5px;
+  background: rgba(10, 43, 79, 0.45);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.sheet canvas { display: block; width: 100%; height: auto; }
+.titleblock {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 2px solid var(--ink);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+.titleblock > div { padding: 6px 10px; border-right: 1px solid var(--rule); min-width: 0; }
+.titleblock > div:last-child { border-right: 0; }
+.titleblock b {
+  display: block;
+  font-family: var(--f-hand);
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 1rem;
+  color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+@media (max-width: 520px) { .titleblock { grid-template-columns: repeat(2, minmax(0, 1fr)); } .titleblock > div:nth-child(2) { border-right: 0; } .titleblock > div:nth-child(-n+2) { border-bottom: 1px solid var(--rule); } }
+
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 10px 12px; font-size: 0.8rem; color: var(--ink-dim); border-top: 1px solid var(--rule); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 14px; height: 10px; display: inline-block; border-radius: 1px; }
+.legend .lg-gold { background: var(--gold); }
+.legend .lg-stone { background: var(--ink-dim); }
+.legend .lg-patched { background: repeating-linear-gradient(45deg, var(--ink-dim) 0 2px, transparent 2px 4px); border: 1px solid var(--ink-dim); }
+
+details.cheat { border-top: 1px solid var(--rule); padding: 10px 12px; }
+details.cheat summary { cursor: pointer; font-family: var(--f-hand); font-size: 1.05rem; color: var(--cyan); }
+details.cheat summary:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.cheat-grid { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 14px; margin-top: 10px; font-size: 0.9rem; }
+.cheat-grid dt { font-family: var(--f-math); font-style: italic; font-size: 1.1rem; color: var(--gold); }
+.cheat-grid dd { margin: 0; }
+.m { font-family: var(--f-math); font-size: 1.08em; white-space: nowrap; }
+
+.order {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+.eyebrow { font-size: 0.74rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-dim); margin: 0; }
+.eyebrow b { color: var(--cyan); font-weight: 600; }
+.equation {
+  font-family: var(--f-math);
+  font-size: clamp(2rem, 5.4vw, 2.8rem);
+  line-height: 1.15;
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px dashed var(--rule);
+  background: rgba(10, 43, 79, 0.6);
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.equation i { font-style: italic; }
+.equation sup { font-size: 0.6em; }
+
+form.qs { display: flex; flex-direction: column; gap: 14px; }
+.q { display: flex; flex-direction: column; gap: 8px; border: 0; margin: 0; padding: 0; min-width: 0; }
+.q > .qlabel, .q > legend { font-weight: 600; font-size: 0.95rem; padding: 0; display: flex; gap: 8px; align-items: baseline; }
+.qnum { font-family: var(--f-display); font-size: 1.15rem; color: var(--cyan); }
+.q.bad .qnum { color: var(--miss); }
+.q.good .qnum { color: var(--ok); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.vertex-in { font-family: var(--f-math); font-size: 1.6rem; display: flex; align-items: center; gap: 6px; }
+input.num {
+  width: 4.2em;
+  font: 600 1.15rem var(--f-body);
+  text-align: center;
+  color: var(--ink);
+  background: var(--paper-deep);
+  border: 1.5px solid var(--rule);
+  border-radius: 3px;
+  padding: 6px 4px;
+}
+input.num:focus-visible { outline: 2px solid var(--cyan); outline-offset: 1px; border-color: var(--cyan); }
+input.num:disabled { opacity: 0.35; }
+.q.bad input.num.wrong { border-color: var(--miss); }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 0; border: 1.5px solid var(--rule); border-radius: 3px; overflow: hidden; }
+.seg label { position: relative; cursor: pointer; }
+.seg input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.seg span {
+  display: block;
+  padding: 7px 13px;
+  font-size: 0.9rem;
+  color: var(--ink-dim);
+  border-right: 1px solid var(--rule);
+  user-select: none;
+}
+.seg label:last-child span { border-right: 0; }
+.seg label:hover span { color: var(--ink); background: rgba(143, 211, 255, 0.08); }
+.seg input:checked + span { background: var(--cyan); color: var(--paper-deep); font-weight: 600; }
+.seg input:focus-visible + span { outline: 2px solid var(--gold); outline-offset: -3px; }
+.units { font-size: 0.9rem; color: var(--ink-dim); display: inline-flex; align-items: center; gap: 6px; }
+
+.actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+button.primary, button.ghost {
+  font: 600 1rem var(--f-body);
+  border-radius: 3px;
+  padding: 10px 18px;
+  cursor: pointer;
+}
+button.primary { background: var(--gold); color: #2a1d00; border: 2px solid var(--gold); }
+button.primary:hover { filter: brightness(1.08); }
+button.ghost { background: transparent; color: var(--ink); border: 1.5px solid var(--rule); }
+button.ghost:hover { border-color: var(--ink-dim); }
+button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.tries { font-size: 0.82rem; color: var(--ink-dim); }
+
+.feedback { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.feedback:empty { display: none; }
+.feedback li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px; font-size: 0.92rem; }
+.feedback .mark { font-weight: 700; }
+.feedback .yes .mark { color: var(--ok); }
+.feedback .no .mark { color: var(--miss); }
+.feedback .note { color: var(--ink-dim); }
+.banner { margin: 0; padding: 10px 12px; border-left: 3px solid var(--cyan); background: rgba(143, 211, 255, 0.08); font-size: 0.95rem; }
+.banner.gold { border-left-color: var(--gold); background: rgba(242, 193, 78, 0.1); }
+.banner.miss { border-left-color: var(--miss); background: rgba(255, 155, 138, 0.08); }
+
+.graph { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: 14px; align-items: start; border-top: 1px dashed var(--rule); padding-top: 14px; }
+.graph canvas { width: 100%; height: auto; display: block; border: 1px solid var(--rule); }
+.graph p { margin: 0; font-size: 0.88rem; color: var(--ink-dim); }
+.graph .key { display: flex; flex-direction: column; gap: 6px; font-size: 0.84rem; color: var(--ink-dim); margin-top: 8px; }
+.graph .key span { display: inline-flex; gap: 8px; align-items: center; }
+.graph .key i { width: 18px; height: 0; border-top: 2px solid; display: inline-block; }
+@media (max-width: 460px) { .graph { grid-template-columns: minmax(0, 1fr); } .graph canvas { max-width: 280px; } }
+
+.win h2 { font-family: var(--f-display); font-size: 2.4rem; text-transform: uppercase; margin: 0; line-height: 1; }
+.win p { margin: 0; }
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.stats div { border: 1px solid var(--rule); padding: 10px; text-align: center; }
+.stats b { display: block; font-family: var(--f-display); font-size: 2rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.stats .s-gold b { color: var(--gold); }
+.stats small { font-size: 0.75rem; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 0.08em; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Parabola Castle</h1>
+      <p class="tag">Read the vertex form. Earn a stone. Raise the castle.</p>
+    </div>
+    <div class="pips" id="pips" aria-label="Castle progress"></div>
+  </header>
+
+  <main class="board">
+    <section class="sheet" aria-label="Castle blueprint">
+      <canvas id="castle" width="640" height="440" role="img" aria-label="Blueprint of a castle being built piece by piece"></canvas>
+      <div class="titleblock">
+        <div>Sheet<b id="tb-sheet">1 of 10</b></div>
+        <div>Next piece<b id="tb-piece">Foundation</b></div>
+        <div>First-try gold<b id="tb-gold">0</b></div>
+        <div>Drawn by<b>Royal mathematician</b></div>
+      </div>
+      <div class="legend">
+        <span><i class="lg-gold"></i>Gold stone: right on the first try</span>
+        <span><i class="lg-stone"></i>Stone: right on the second try</span>
+        <span><i class="lg-patched"></i>Patched: answer was shown</span>
+      </div>
+      <details class="cheat" id="cheat">
+        <summary>Cheat sheet: reading <span class="m">y = a(x − h)² + k</span></summary>
+        <dl class="cheat-grid">
+          <dt>(h, k)</dt><dd>The vertex. <b>h</b> is the number inside the parentheses with its sign flipped. <b>k</b> is the number at the end, sign kept.</dd>
+          <dt>a</dt><dd>If <b>a</b> is negative, the parabola opens down. It is reflected over the x-axis. A positive <b>a</b> opens up.</dd>
+          <dt>x − h</dt><dd><span class="m">(x − 3)²</span> moves the graph <b>right 3</b>. <span class="m">(x + 3)²</span> moves it <b>left 3</b>.</dd>
+          <dt>+ k</dt><dd><span class="m">+ 5</span> moves the graph <b>up 5</b>. <span class="m">− 5</span> moves it <b>down 5</b>.</dd>
+        </dl>
+      </details>
+    </section>
+
+    <section class="order" id="order" aria-live="polite">
+      <div id="ask">
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <p class="eyebrow">Work order · Stone <b id="ord-n">1</b> of 10 · <b id="ord-piece">Foundation</b></p>
+          <p class="equation" id="equation" aria-label="Equation"></p>
+
+          <form class="qs" id="qs" autocomplete="off" novalidate>
+            <div class="q" id="q-vertex">
+              <div class="qlabel"><span class="qnum">1</span><span>Identify the vertex (h, k)</span></div>
+              <div class="vertex-in">
+                <span>(</span>
+                <input class="num" id="in-h" inputmode="numeric" aria-label="h, the x-coordinate of the vertex" placeholder="h">
+                <span>,</span>
+                <input class="num" id="in-k" inputmode="numeric" aria-label="k, the y-coordinate of the vertex" placeholder="k">
+                <span>)</span>
+              </div>
+            </div>
+
+            <fieldset class="q" id="q-refl">
+              <legend><span class="qnum">2</span><span>Is it reflected over the x-axis?</span></legend>
+              <div class="seg">
+                <label><input type="radio" name="refl" id="refl-yes" value="yes"><span>Yes, opens down</span></label>
+                <label><input type="radio" name="refl" id="refl-no" value="no"><span>No, opens up</span></label>
+              </div>
+            </fieldset>
+
+            <fieldset class="q" id="q-horiz">
+              <legend><span class="qnum">3</span><span>Horizontal shift</span></legend>
+              <div class="row">
+                <div class="seg">
+                  <label><input type="radio" name="hdir" id="hdir-left" value="left"><span>Left</span></label>
+                  <label><input type="radio" name="hdir" id="hdir-none" value="none"><span>None</span></label>
+                  <label><input type="radio" name="hdir" id="hdir-right" value="right"><span>Right</span></label>
+                </div>
+                <label class="units"><input class="num" id="in-hamt" inputmode="numeric" aria-label="Horizontal shift in units" placeholder="#"> units</label>
+              </div>
+            </fieldset>
+
+            <fieldset class="q" id="q-vert">
+              <legend><span class="qnum">4</span><span>Vertical shift</span></legend>
+              <div class="row">
+                <div class="seg">
+                  <label><input type="radio" name="vdir" id="vdir-up" value="up"><span>Up</span></label>
+                  <label><input type="radio" name="vdir" id="vdir-none" value="none"><span>None</span></label>
+                  <label><input type="radio" name="vdir" id="vdir-down" value="down"><span>Down</span></label>
+                </div>
+                <label class="units"><input class="num" id="in-vamt" inputmode="numeric" aria-label="Vertical shift in units" placeholder="#"> units</label>
+              </div>
+            </fieldset>
+
+            <div class="actions">
+              <button type="submit" class="primary" id="btn-check">Check &amp; place stone</button>
+              <button type="button" class="primary" id="btn-next" hidden>Next stone →</button>
+              <span class="tries" id="tries">2 tries per stone</span>
+            </div>
+          </form>
+
+          <p class="banner" id="banner" hidden></p>
+          <ul class="feedback" id="feedback"></ul>
+
+          <div class="graph">
+            <canvas id="graph" width="220" height="220" role="img" aria-label="Coordinate graph of the parabola"></canvas>
+            <div>
+              <p id="graph-cap">The dashed curve is the parent function <span class="m">y = x²</span>. Your parabola appears here after you check.</p>
+              <div class="key" id="graph-key" hidden>
+                <span><i style="border-color:var(--ink-dim);border-top-style:dashed"></i>Parent <span class="m">y = x²</span></span>
+                <span><i style="border-color:var(--cyan)"></i>Shift from (0, 0) to the vertex</span>
+                <span><i style="border-color:var(--gold)"></i>This stone's parabola</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="win" class="win" hidden>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <p class="eyebrow">Sheet 10 of 10 · Complete</p>
+          <h2>The castle stands</h2>
+          <p id="win-msg"></p>
+          <div class="stats">
+            <div class="s-gold"><b id="st-gold">0</b><small>Gold</small></div>
+            <div><b id="st-stone">0</b><small>Stone</small></div>
+            <div><b id="st-patch">0</b><small>Patched</small></div>
+          </div>
+          <div class="actions"><button type="button" class="primary" id="btn-again">Build a new castle</button></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+(() => {
+  const PIECES = ["Foundation", "West wall", "East wall", "Gate arch", "West tower", "East tower", "Keep", "Battlements", "Arched windows", "Roofs & flags"];
+  const TOTAL = PIECES.length;
+  const MINUS = "−";
+  const reduceMotion = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const $ = (id) => document.getElementById(id);
+
+  const state = { level: 0, results: [], tries: 0, problem: null, phase: "ask", lastKey: "" };
+  let anim = null; // {index, start}
+
+  // ---------- problems ----------
+  const rint = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  const nz = (lo, hi) => { let v; do { v = rint(lo, hi); } while (v === 0); return v; };
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+  function makeProblem(level) {
+    let p;
+    do {
+      let a, h, k;
+      if (level < 2) {
+        a = level === 0 ? 1 : -1;
+        if (Math.random() < 0.5) { h = nz(-6, 6); k = 0; } else { h = 0; k = nz(-6, 6); }
+      } else if (level < 6) {
+        a = pick([1, -1]); h = nz(-6, 6); k = nz(-6, 6);
+      } else {
+        a = pick([2, -2, 3, -3, 0.5, -0.5, -1, 4]);
+        h = Math.random() < 0.15 ? 0 : nz(-6, 6);
+        k = Math.random() < 0.15 && h !== 0 ? 0 : nz(-6, 6);
+      }
+      p = { a, h, k };
+    } while (`${p.a},${p.h},${p.k}` === state.lastKey);
+    state.lastKey = `${p.a},${p.h},${p.k}`;
+    return p;
+  }
+
+  const fmtNum = (n) => (n < 0 ? MINUS + Math.abs(n) : String(n));
+  function fmtA(a) {
+    if (a === 1) return "";
+    if (a === -1) return MINUS;
+    if (a === 0.5) return "½";
+    if (a === -0.5) return MINUS + "½";
+    return fmtNum(a);
+  }
+  function eqHTML(p) {
+    const core = p.h === 0 ? "<i>x</i><sup>2</sup>" : `(<i>x</i> ${p.h > 0 ? MINUS : "+"} ${Math.abs(p.h)})<sup>2</sup>`;
+    const tail = p.k === 0 ? "" : ` ${p.k > 0 ? "+" : MINUS} ${Math.abs(p.k)}`;
+    return `<i>y</i> = ${fmtA(p.a)}${core}${tail}`;
+  }
+  const insideText = (p) => (p.h === 0 ? "x" : `(x ${p.h > 0 ? MINUS : "+"} ${Math.abs(p.h)})`);
+  const tailText = (p) => (p.k > 0 ? `+ ${p.k}` : `${MINUS} ${Math.abs(p.k)}`);
+  const aText = (p) => (p.a === 0.5 ? "½" : p.a === -0.5 ? MINUS + "½" : fmtNum(p.a));
+
+  // ---------- form ----------
+  const radioVal = (name) => { const r = document.querySelector(`input[name="${name}"]:checked`); return r ? r.value : null; };
+  const parseNum = (s) => {
+    const t = String(s).trim().replace(/[−–—]/g, "-").replace(/\s+/g, "");
+    if (t === "" || !/^[-+]?\d+(\.\d+)?$/.test(t)) return null;
+    return Number(t);
+  };
+
+  function syncUnits() {
+    const h = radioVal("hdir"), v = radioVal("vdir");
+    $("in-hamt").disabled = h === "none";
+    $("in-vamt").disabled = v === "none";
+    if (h === "none") $("in-hamt").value = "0";
+    if (v === "none") $("in-vamt").value = "0";
+  }
+
+  function clearForm() {
+    $("qs").reset();
+    $("in-hamt").disabled = false; $("in-vamt").disabled = false;
+    document.querySelectorAll(".q").forEach((q) => q.classList.remove("good", "bad"));
+    document.querySelectorAll("input.num").forEach((i) => i.classList.remove("wrong"));
+  }
+
+  function setLocked(locked) {
+    $("qs").querySelectorAll("input").forEach((i) => { if (locked) i.disabled = true; });
+    if (!locked) { $("qs").querySelectorAll("input").forEach((i) => (i.disabled = false)); syncUnits(); }
+  }
+
+  function fillAnswers(p) {
+    $("in-h").value = fmtNum(p.h); $("in-k").value = fmtNum(p.k);
+    $(p.a < 0 ? "refl-yes" : "refl-no").checked = true;
+    $("hdir-" + (p.h > 0 ? "right" : p.h < 0 ? "left" : "none")).checked = true;
+    $("vdir-" + (p.k > 0 ? "up" : p.k < 0 ? "down" : "none")).checked = true;
+    $("in-hamt").value = Math.abs(p.h); $("in-vamt").value = Math.abs(p.k);
+  }
+
+  // ---------- grading ----------
+  function grade(p, ans) {
+    const parts = [];
+    // 1 vertex
+    {
+      const ok = ans.h === p.h && ans.k === p.k;
+      let note = "";
+      if (!ok) {
+        const bits = [];
+        if (ans.h === p.k && ans.k === p.h && p.h !== p.k) {
+          bits.push("Order matters: the vertex is (h, k). h comes from inside the parentheses; k is the number at the end.");
+        } else {
+          if (ans.h !== p.h) {
+            if (p.h === 0) bits.push("There is no number with x inside, so the graph did not move sideways: h = 0.");
+            else if (ans.h === -p.h) bits.push(`Inside the parentheses the sign flips. ${insideText(p)} is the same as (x ${MINUS} (${fmtNum(p.h)})), so h = ${fmtNum(p.h)}.`);
+            else bits.push(`h comes from ${insideText(p)}. Flip the sign of that number: h = ${fmtNum(p.h)}.`);
+          }
+          if (ans.k !== p.k) {
+            if (p.k === 0) bits.push("Nothing is added at the end, so k = 0.");
+            else if (ans.k === -p.k) bits.push(`k keeps its sign. "${tailText(p)}" at the end means k = ${fmtNum(p.k)}.`);
+            else bits.push(`k is the number added at the end: "${tailText(p)}", so k = ${fmtNum(p.k)}.`);
+          }
+        }
+        note = bits.join(" ");
+      }
+      parts.push({ id: "q-vertex", label: "Vertex", ok, note, answer: `(${fmtNum(p.h)}, ${fmtNum(p.k)})`, wrong: [ans.h !== p.h && "in-h", ans.k !== p.k && "in-k"].filter(Boolean) });
+    }
+    // 2 reflection
+    {
+      const refl = p.a < 0;
+      const ok = (ans.refl === "yes") === refl;
+      let note = refl
+        ? `a = ${aText(p)} is negative, so the parabola opens down. That is a reflection over the x-axis.`
+        : `a = ${aText(p)} is positive, so the parabola opens up. No reflection.`;
+      if (Math.abs(p.a) !== 1) note += ` The size of a (${Math.abs(p.a) === 0.5 ? "½" : Math.abs(p.a)}) only stretches or squishes it. Only the sign decides the flip.`;
+      parts.push({ id: "q-refl", label: "Reflection", ok, note: ok ? "" : note, answer: refl ? "Yes, opens down" : "No, opens up", wrong: [] });
+    }
+    // 3 horizontal
+    {
+      const dir = p.h > 0 ? "right" : p.h < 0 ? "left" : "none";
+      const amt = Math.abs(p.h);
+      const dirOk = ans.hdir === dir;
+      const amtOk = dir === "none" || ans.hamt === amt;
+      const ok = dirOk && amtOk;
+      let note = "";
+      if (!ok) {
+        if (dir === "none") note = "x has no number with it inside the square, so there is no left or right shift.";
+        else if (!dirOk) note = `${insideText(p)} moves the graph ${dir} ${amt}. The direction is the opposite of the sign you see: minus goes right, plus goes left.`;
+        else note = `The number inside is ${amt}, so it moves ${amt} unit${amt === 1 ? "" : "s"} ${dir}.`;
+      }
+      parts.push({ id: "q-horiz", label: "Horizontal shift", ok, note, answer: dir === "none" ? "None" : `${dir[0].toUpperCase() + dir.slice(1)} ${amt}`, wrong: amtOk ? [] : ["in-hamt"] });
+    }
+    // 4 vertical
+    {
+      const dir = p.k > 0 ? "up" : p.k < 0 ? "down" : "none";
+      const amt = Math.abs(p.k);
+      const dirOk = ans.vdir === dir;
+      const amtOk = dir === "none" || ans.vamt === amt;
+      const ok = dirOk && amtOk;
+      let note = "";
+      if (!ok) {
+        if (dir === "none") note = "Nothing is added at the end, so there is no up or down shift.";
+        else if (!dirOk) note = `"${tailText(p)}" at the end moves the graph ${dir} ${amt}. Plus goes up, minus goes down, just like it looks.`;
+        else note = `The number at the end is ${amt}, so it moves ${amt} unit${amt === 1 ? "" : "s"} ${dir}.`;
+      }
+      parts.push({ id: "q-vert", label: "Vertical shift", ok, note, answer: dir === "none" ? "None" : `${dir[0].toUpperCase() + dir.slice(1)} ${amt}`, wrong: amtOk ? [] : ["in-vamt"] });
+    }
+    return parts;
+  }
+
+  function readAnswers() {
+    const ans = {
+      h: parseNum($("in-h").value), k: parseNum($("in-k").value),
+      refl: radioVal("refl"), hdir: radioVal("hdir"), vdir: radioVal("vdir"),
+      hamt: parseNum($("in-hamt").value), vamt: parseNum($("in-vamt").value),
+    };
+    const missing = [];
+    if (ans.h === null || ans.k === null) missing.push("both numbers of the vertex");
+    if (!ans.refl) missing.push("whether it is reflected");
+    if (!ans.hdir || (ans.hdir !== "none" && ans.hamt === null)) missing.push("the horizontal shift and its units");
+    if (!ans.vdir || (ans.vdir !== "none" && ans.vamt === null)) missing.push("the vertical shift and its units");
+    return { ans, missing };
+  }
+
+  function showBanner(text, kind) {
+    const b = $("banner");
+    b.textContent = text;
+    b.className = "banner" + (kind ? " " + kind : "");
+    b.hidden = !text;
+  }
+
+  function showFeedback(parts, reveal) {
+    const ul = $("feedback");
+    ul.innerHTML = "";
+    document.querySelectorAll("input.num").forEach((i) => i.classList.remove("wrong"));
+    parts.forEach((pt, i) => {
+      const q = $(pt.id);
+      q.classList.toggle("good", pt.ok);
+      q.classList.toggle("bad", !pt.ok);
+      if (!pt.ok) pt.wrong.forEach((w) => $(w).classList.add("wrong"));
+      const li = document.createElement("li");
+      li.className = pt.ok ? "yes" : "no";
+      const mark = document.createElement("span");
+      mark.className = "mark";
+      mark.textContent = pt.ok ? "✓" : "✗";
+      const body = document.createElement("span");
+      const strong = document.createElement("b");
+      strong.textContent = `${i + 1}. ${pt.label}` + (reveal && !pt.ok ? `: ${pt.answer}` : "");
+      body.appendChild(strong);
+      if (pt.note) { const n = document.createElement("span"); n.className = "note"; n.textContent = " " + pt.note; body.appendChild(n); }
+      li.append(mark, body);
+      ul.appendChild(li);
+    });
+  }
+
+  // ---------- flow ----------
+  function check(e) {
+    e.preventDefault();
+    if (state.phase !== "ask") return;
+    const { ans, missing } = readAnswers();
+    if (missing.length) { showBanner("Fill in " + missing.join(", ") + " before checking.", "miss"); return; }
+    const parts = grade(state.problem, ans);
+    state.tries += 1;
+    const allOk = parts.every((p) => p.ok);
+    if (allOk) {
+      const result = state.tries === 1 ? "gold" : "stone";
+      showFeedback(parts, false);
+      showBanner(result === "gold" ? `Gold stone! ${PIECES[state.level]} placed on the first try.` : `${PIECES[state.level]} placed. Solid work on the fix.`, result === "gold" ? "gold" : "");
+      finishRound(result);
+    } else if (state.tries < 2) {
+      showFeedback(parts, false);
+      showBanner("Fix the parts marked ✗ and check again. One more try before the answer is shown.", "miss");
+      $("tries").textContent = "1 try left";
+    } else {
+      fillAnswers(state.problem);
+      showFeedback(parts, true);
+      showBanner(`Here are the answers. The ${PIECES[state.level].toLowerCase()} goes in as a patched stone. Read the notes, then keep building.`, "miss");
+      finishRound("patched");
+    }
+    render();
+  }
+
+  function finishRound(result) {
+    state.results[state.level] = result;
+    state.phase = "done";
+    anim = { index: state.level, start: performance.now() };
+  }
+
+  function next() {
+    if (state.phase !== "done") return;
+    if (state.level >= TOTAL - 1) { state.phase = "won"; render(); return; }
+    state.level += 1;
+    newRound();
+    render();
+    $("in-h").focus({ preventScroll: true });
+  }
+
+  function newRound() {
+    state.problem = makeProblem(state.level);
+    state.tries = 0;
+    state.phase = "ask";
+    clearForm();
+    $("feedback").innerHTML = "";
+    showBanner("", "");
+    $("tries").textContent = "2 tries per stone";
+  }
+
+  function restart() {
+    state.level = 0; state.results = []; anim = null;
+    newRound();
+    render();
+  }
+
+  function render() {
+    const won = state.phase === "won";
+    $("ask").hidden = won;
+    $("win").hidden = !won;
+    const gold = state.results.filter((r) => r === "gold").length;
+    $("tb-gold").textContent = String(gold);
+    $("tb-sheet").textContent = `${Math.min(state.level + 1, TOTAL)} of ${TOTAL}`;
+    $("tb-piece").textContent = won ? "Complete" : PIECES[state.level];
+
+    const pips = $("pips");
+    pips.innerHTML = '<span class="pips-label">Stones</span>';
+    for (let i = 0; i < TOTAL; i++) {
+      const d = document.createElement("span");
+      d.className = "pip " + (state.results[i] || (i === state.level && !won ? "current" : ""));
+      d.title = PIECES[i] + (state.results[i] ? ` (${state.results[i]})` : "");
+      pips.appendChild(d);
+    }
+
+    if (won) {
+      const stone = state.results.filter((r) => r === "stone").length;
+      const patched = state.results.filter((r) => r === "patched").length;
+      $("st-gold").textContent = gold; $("st-stone").textContent = stone; $("st-patch").textContent = patched;
+      $("win-msg").textContent = gold === TOTAL
+        ? "Every stone is gold. You read vertex form like a royal architect."
+        : gold >= 7 ? `${gold} of ${TOTAL} stones were right on the first try. Build another castle to go for all gold.`
+        : `${gold} of ${TOTAL} stones were right on the first try. Open the cheat sheet, then build another castle and beat that number.`;
+      drawGraph(null, false);
+      return;
+    }
+
+    $("ord-n").textContent = state.level + 1;
+    $("ord-piece").textContent = PIECES[state.level];
+    $("equation").innerHTML = eqHTML(state.problem);
+    const done = state.phase === "done";
+    $("btn-check").hidden = done;
+    $("btn-next").hidden = !done;
+    $("btn-next").textContent = state.level >= TOTAL - 1 ? "See the finished castle →" : "Next stone →";
+    $("tries").hidden = done;
+    setLocked(done);
+    $("graph-key").hidden = !done;
+    $("graph-cap").innerHTML = done
+      ? `Start at (0, 0), slide to the vertex (${fmtNum(state.problem.h)}, ${fmtNum(state.problem.k)}), then open ${state.problem.a < 0 ? "<b>down</b>" : "<b>up</b>"}.`
+      : 'The dashed curve is the parent function <span class="m">y = x²</span>. Your parabola appears here after you check.';
+    drawGraph(state.problem, done);
+    if (done) $("btn-next").focus({ preventScroll: true });
+  }
+
+  // ---------- canvas helpers ----------
+  function prep(cv, w, h) {
+    const r = Math.min(window.devicePixelRatio || 1, 3);
+    cv.width = Math.round(w * r); cv.height = Math.round(h * r);
+    const c = cv.getContext("2d");
+    c.setTransform(r, 0, 0, r, 0, 0);
+    return c;
+  }
+  const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  let C = {};
+  function readColors() {
+    C = { paper: css("--paper"), deep: css("--paper-deep"), ink: css("--ink"), dim: css("--ink-dim"), cyan: css("--cyan"), gold: css("--gold"), rule: css("--rule") };
+  }
+
+  // ---------- castle ----------
+  const W = 640, H = 440, G = 400;
+  const cc = prep($("castle"), W, H);
+
+  function styleFor(i, t) {
+    const r = state.results[i];
+    if (r === "gold") return { stroke: C.gold, fill: "rgba(242,193,78,0.16)", joint: "rgba(242,193,78,0.45)", lw: 2, dash: [] };
+    if (r === "stone") return { stroke: C.ink, fill: "rgba(143,211,255,0.13)", joint: "rgba(234,243,255,0.35)", lw: 2, dash: [] };
+    if (r === "patched") return { stroke: C.dim, fill: "rgba(166,194,226,0.07)", joint: "rgba(166,194,226,0.28)", lw: 1.6, dash: [6, 4] };
+    const isNext = i === state.level && state.phase !== "won";
+    if (isNext) {
+      const a = reduceMotion ? 0.7 : 0.45 + 0.35 * (0.5 + 0.5 * Math.sin(t / 380));
+      return { stroke: `rgba(143,211,255,${a.toFixed(3)})`, ghost: true, lw: 1.5, dash: [5, 4] };
+    }
+    return { stroke: "rgba(234,243,255,0.2)", ghost: true, lw: 1, dash: [3, 4] };
+  }
+
+  function block(c, x, y, w, h, s, joints = true) {
+    c.save();
+    if (!s.ghost) {
+      c.fillStyle = C.paper; c.fillRect(x, y, w, h);
+      c.fillStyle = s.fill; c.fillRect(x, y, w, h);
+      if (joints && s.joint) {
+        c.strokeStyle = s.joint; c.lineWidth = 1; c.setLineDash([]);
+        c.beginPath();
+        let row = 0;
+        for (let yy = y; yy < y + h - 0.5; yy += 14, row++) {
+          if (yy > y) { c.moveTo(x, yy); c.lineTo(x + w, yy); }
+          const off = row % 2 ? 12 : 0;
+          for (let xx = x + off + 24; xx < x + w - 2; xx += 24) { c.moveTo(xx, yy); c.lineTo(xx, Math.min(yy + 14, y + h)); }
+        }
+        c.stroke();
+      }
+    }
+    c.strokeStyle = s.stroke; c.lineWidth = s.lw; c.setLineDash(s.dash);
+    c.strokeRect(x, y, w, h);
+    c.restore();
+  }
+
+  function archPath(c, cx, base, w, h, side = 0) {
+    // parabola opening downward: y = base - side - h*(1 - u^2)
+    const half = w / 2;
+    c.beginPath();
+    c.moveTo(cx - half, base);
+    c.lineTo(cx - half, base - side);
+    for (let i = 0; i <= 28; i++) {
+      const x = cx - half + (w * i) / 28;
+      const u = (x - cx) / half;
+      c.lineTo(x, base - side - h * (1 - u * u));
+    }
+    c.lineTo(cx + half, base);
+    c.closePath();
+  }
+
+  function opening(c, cx, base, w, h, side, s) {
+    c.save();
+    archPath(c, cx, base, w, h, side);
+    if (!s.ghost) { c.fillStyle = C.deep; c.fill(); }
+    c.strokeStyle = s.stroke; c.lineWidth = s.lw; c.setLineDash(s.dash); c.stroke();
+    c.restore();
+  }
+
+  function merlons(c, x0, w, n, top, mw, mh, s) {
+    const gap = (w - n * mw) / (n - 1);
+    for (let i = 0; i < n; i++) block(c, x0 + i * (mw + gap), top - mh, mw, mh, s, false);
+  }
+
+  function flag(c, x, top, s, t, built) {
+    c.save();
+    c.strokeStyle = s.stroke; c.lineWidth = s.lw; c.setLineDash(s.dash);
+    c.beginPath(); c.moveTo(x, top); c.lineTo(x, top - 32); c.stroke();
+    const y0 = top - 32;
+    const wave = built && !reduceMotion ? t / 260 : 0;
+    c.beginPath();
+    c.moveTo(x, y0);
+    for (let i = 0; i <= 12; i++) { const xx = x + i * 2.2; c.lineTo(xx, y0 + 1 + Math.sin(wave + i * 0.6) * 2 * (i / 12)); }
+    for (let i = 12; i >= 0; i--) { const xx = x + i * 2.2; c.lineTo(xx, y0 + 13 - (i / 12) * 4 + Math.sin(wave + i * 0.6) * 2 * (i / 12)); }
+    c.closePath();
+    if (!s.ghost) { c.fillStyle = state.results[9] === "gold" ? C.gold : s.stroke; c.globalAlpha *= 0.85; c.fill(); }
+    else c.stroke();
+    c.restore();
+  }
+
+  const DRAW = [
+    // 0 foundation
+    (c, s) => block(c, 60, 372, 520, 28, s),
+    // 1 west wall
+    (c, s) => block(c, 160, 252, 120, 120, s),
+    // 2 east wall
+    (c, s) => block(c, 360, 252, 120, 120, s),
+    // 3 gate with a parabolic arch
+    (c, s, t, built) => {
+      block(c, 280, 232, 80, 140, s);
+      c.save();
+      archPath(c, 320, 372, 52, 84);
+      if (!s.ghost) { c.fillStyle = C.deep; c.fill(); }
+      c.clip();
+      if (!s.ghost) {
+        c.strokeStyle = s.joint; c.lineWidth = 1.2; c.setLineDash([]);
+        c.beginPath();
+        for (let x = 298; x <= 344; x += 8) { c.moveTo(x, 280); c.lineTo(x, 372); }
+        for (let y = 300; y <= 372; y += 12) { c.moveTo(290, y); c.lineTo(350, y); }
+        c.stroke();
+      }
+      c.restore();
+      c.save();
+      archPath(c, 320, 372, 52, 84);
+      c.strokeStyle = s.stroke; c.lineWidth = s.lw; c.setLineDash(s.dash); c.stroke();
+      c.restore();
+      if (built) {
+        c.save();
+        c.fillStyle = C.cyan; c.textAlign = "center";
+        c.font = '14px "Architects Daughter", cursive';
+        c.fillText("↑ gate arch: a < 0, opens down", 320, G + 30);
+        c.restore();
+      }
+    },
+    // 4 west tower
+    (c, s) => block(c, 96, 172, 64, 200, s),
+    // 5 east tower
+    (c, s) => block(c, 480, 172, 64, 200, s),
+    // 6 keep
+    (c, s) => block(c, 286, 112, 68, 120, s),
+    // 7 battlements
+    (c, s) => {
+      merlons(c, 160, 120, 6, 252, 12, 12, s);
+      merlons(c, 360, 120, 6, 252, 12, 12, s);
+      merlons(c, 96, 64, 4, 172, 10, 12, s);
+      merlons(c, 480, 64, 4, 172, 10, 12, s);
+      merlons(c, 286, 68, 4, 112, 11, 12, s);
+    },
+    // 8 arched windows (parabolic tops)
+    (c, s) => {
+      [[128, 236], [128, 306], [512, 236], [512, 306]].forEach(([x, b]) => opening(c, x, b, 16, 12, 18, s));
+      opening(c, 320, 184, 20, 14, 22, s);
+      opening(c, 220, 334, 20, 14, 26, s);
+      opening(c, 420, 334, 20, 14, 26, s);
+    },
+    // 9 roofs and flags
+    (c, s, t, built) => {
+      [128, 512].forEach((cx) => {
+        c.save();
+        c.beginPath(); c.moveTo(cx - 38, 160); c.lineTo(cx, 96); c.lineTo(cx + 38, 160); c.closePath();
+        if (!s.ghost) { c.fillStyle = C.paper; c.fill(); c.fillStyle = s.fill; c.fill(); }
+        c.strokeStyle = s.stroke; c.lineWidth = s.lw; c.setLineDash(s.dash); c.stroke();
+        if (!s.ghost) {
+          c.strokeStyle = s.joint; c.lineWidth = 1; c.setLineDash([]); c.beginPath();
+          for (let y = 112; y < 160; y += 12) { const hw = ((y - 96) / 64) * 38; c.moveTo(cx - hw, y); c.lineTo(cx + hw, y); }
+          c.stroke();
+        }
+        c.restore();
+        flag(c, cx, 96, s, t, built);
+      });
+      flag(c, 320, 100, s, t, built);
+    },
+  ];
+
+  function drawCastle(t) {
+    const c = cc;
+    c.clearRect(0, 0, W, H);
+    // ground line with hatching
+    c.save();
+    c.strokeStyle = C.ink; c.lineWidth = 2;
+    c.beginPath(); c.moveTo(16, G); c.lineTo(W - 16, G); c.stroke();
+    c.strokeStyle = "rgba(234,243,255,0.28)"; c.lineWidth = 1; c.beginPath();
+    for (let x = 20; x < W - 16; x += 12) { c.moveTo(x, G + 2); c.lineTo(x - 10, G + 14); }
+    c.stroke();
+    c.font = '13px "Architects Daughter", cursive';
+    c.fillStyle = C.dim;
+    c.fillText("GROUND  y = 0", 20, G + 30);
+    c.textAlign = "right";
+    c.fillText("SCALE 1 square = 1 unit", W - 20, G + 30);
+    c.restore();
+
+    for (let i = 0; i < TOTAL; i++) {
+      const built = !!state.results[i];
+      const s = styleFor(i, t);
+      c.save();
+      if (built && anim && anim.index === i && !reduceMotion) {
+        const p = Math.min(1, (t - anim.start) / 650);
+        const e = 1 - Math.pow(1 - p, 3);
+        c.globalAlpha = e;
+        c.translate(0, -(1 - e) * 36);
+        if (p >= 1) anim = null;
+      }
+      DRAW[i](c, s, t, built);
+      c.restore();
+    }
+
+    if (state.phase === "won") {
+      c.save();
+      c.font = '20px "Architects Daughter", cursive';
+      c.fillStyle = C.gold; c.textAlign = "center";
+      c.fillText("Approved for construction", W / 2, 40);
+      c.restore();
+    }
+  }
+
+  // ---------- graph ----------
+  const GS = 220, R = 10;
+  const gc = prep($("graph"), GS, GS);
+  const gx = (x) => ((x + R) / (2 * R)) * GS;
+  const gy = (y) => ((R - y) / (2 * R)) * GS;
+
+  function arrow(c, x1, y1, x2, y2, color) {
+    if (Math.abs(x1 - x2) < 0.5 && Math.abs(y1 - y2) < 0.5) return;
+    c.save();
+    c.strokeStyle = color; c.fillStyle = color; c.lineWidth = 2; c.setLineDash([]);
+    c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke();
+    const ang = Math.atan2(y2 - y1, x2 - x1);
+    c.beginPath();
+    c.moveTo(x2, y2);
+    c.lineTo(x2 - 8 * Math.cos(ang - 0.45), y2 - 8 * Math.sin(ang - 0.45));
+    c.lineTo(x2 - 8 * Math.cos(ang + 0.45), y2 - 8 * Math.sin(ang + 0.45));
+    c.closePath(); c.fill();
+    c.restore();
+  }
+
+  function plot(c, f, color, width, dash) {
+    c.save();
+    c.beginPath(); c.rect(0, 0, GS, GS); c.clip();
+    c.strokeStyle = color; c.lineWidth = width; c.setLineDash(dash);
+    c.beginPath();
+    let started = false;
+    for (let x = -R; x <= R + 0.001; x += 0.05) {
+      const y = f(x);
+      if (y > R + 4 || y < -R - 4) { started = false; continue; }
+      if (!started) { c.moveTo(gx(x), gy(y)); started = true; } else c.lineTo(gx(x), gy(y));
+    }
+    c.stroke();
+    c.restore();
+  }
+
+  function drawGraph(p, show) {
+    const c = gc;
+    c.clearRect(0, 0, GS, GS);
+    c.fillStyle = C.deep; c.fillRect(0, 0, GS, GS);
+    c.lineWidth = 1;
+    for (let i = -R; i <= R; i++) {
+      c.strokeStyle = i % 5 === 0 ? "rgba(214,233,255,0.16)" : "rgba(214,233,255,0.07)";
+      c.beginPath(); c.moveTo(gx(i), 0); c.lineTo(gx(i), GS); c.moveTo(0, gy(i)); c.lineTo(GS, gy(i)); c.stroke();
+    }
+    c.strokeStyle = "rgba(234,243,255,0.6)"; c.lineWidth = 1.4;
+    c.beginPath(); c.moveTo(gx(0), 0); c.lineTo(gx(0), GS); c.moveTo(0, gy(0)); c.lineTo(GS, gy(0)); c.stroke();
+    c.fillStyle = C.dim; c.font = '10px "Work Sans", sans-serif'; c.textAlign = "center";
+    [-10, -5, 5, 10].forEach((v) => { c.fillText(String(v).replace("-", MINUS), gx(v) + (v === 10 ? -8 : v === -10 ? 8 : 0), gy(0) + 12); });
+    c.textAlign = "left";
+    [-10, -5, 5, 10].forEach((v) => { c.fillText(String(v).replace("-", MINUS), gx(0) + 4, gy(v) + (v === 10 ? 10 : v === -10 ? -3 : 4)); });
+
+    plot(c, (x) => x * x, C.dim, 1.4, [4, 4]);
+
+    if (p && show) {
+      arrow(c, gx(0), gy(0), gx(p.h), gy(0), C.cyan);
+      arrow(c, gx(p.h), gy(0), gx(p.h), gy(p.k), C.cyan);
+      plot(c, (x) => p.a * (x - p.h) * (x - p.h) + p.k, C.gold, 2.4, []);
+      c.fillStyle = C.gold;
+      c.beginPath(); c.arc(gx(p.h), gy(p.k), 4.5, 0, Math.PI * 2); c.fill();
+      c.font = '600 12px "Work Sans", sans-serif';
+      const label = `(${fmtNum(p.h)}, ${fmtNum(p.k)})`;
+      const lx = gx(p.h) + (p.h > 4 ? -8 : 8);
+      c.textAlign = p.h > 4 ? "right" : "left";
+      const ly = gy(p.k) + (p.a < 0 ? -9 : 17);
+      c.fillStyle = C.deep;
+      const tw = c.measureText(label).width;
+      c.fillRect(c.textAlign === "right" ? lx - tw - 2 : lx - 2, ly - 11, tw + 4, 14);
+      c.fillStyle = C.ink; c.fillText(label, lx, ly);
+    }
+  }
+
+  // ---------- loop ----------
+  function loop(t) {
+    drawCastle(t);
+    requestAnimationFrame(loop);
+  }
+
+  // ---------- wiring ----------
+  $("qs").addEventListener("submit", check);
+  $("btn-next").addEventListener("click", next);
+  $("btn-again").addEventListener("click", restart);
+  document.querySelectorAll('input[name="hdir"], input[name="vdir"]').forEach((r) => r.addEventListener("change", syncUnits));
+  document.querySelectorAll('input[name="hdir"], input[name="vdir"]').forEach((r) => r.addEventListener("change", (e) => {
+    const amt = e.target.name === "hdir" ? $("in-hamt") : $("in-vamt");
+    if (e.target.value !== "none" && amt.value === "0") amt.value = "";
+  }));
+
+  function start(data) {
+    readColors();
+    if (data && data.state && data.state.problem) Object.assign(state, data.state);
+    if (!state.problem) state.problem = makeProblem(0);
+    render();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => render());
+    requestAnimationFrame(loop);
+  }
+
+  window.claude?.hot?.snapshot?.(() => ({ state: { ...state } }));
+  window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+})();
+</script>
+
+</body>
+</html>
